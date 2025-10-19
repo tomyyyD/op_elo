@@ -1,13 +1,13 @@
 import { Link } from 'react-router-dom'
+import './App.css'
+import logoUrl from './assets/joly-roger.png'
 import kaidoUrl from './assets/kaido.png'
 import shanksUrl from './assets/shanks.png'
-import logoUrl from './assets/joly-roger.png'
-import './App.css'
 
 function App() {
 
   return (
-    <>
+    <div style={{maxWidth: '1280px', margin: "0 auto"}}>
       <div>
         <p className="read-the-docs">
           art by <a href="https://x.com/ip2gdo">@ip2gdo</a> on twitter
@@ -47,7 +47,7 @@ function App() {
           </p>
         </div>
       </div>
-    </>
+    </div>
   )
 }
 

@@ -12,8 +12,25 @@
   transform: translateY(-2px);
 }
 
+.character-slide-container {
+  transition: transform 0.5s ease-in-out;
+}
+
+.character-slide-container.sliding {
+  transform: translateX(-100%);
+}
+
+.character-image {
+  transition: all 0.3s ease-in-out;
+}
+
+.character-image:hover {
+  transform: scale(1.05);
+}
+
 .vs-divider {
   position: relative;
+  z-index: 10;
 }
 
 .vs-divider::before {
@@ -27,9 +44,60 @@
   background: linear-gradient(to bottom, transparent, #e5e7eb, transparent);
 }
 
+/* Carousel-specific styles */
+.carousel-container {
+  perspective: 1000px;
+}
+
+.carousel-track {
+  transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform-style: preserve-3d;
+}
+
+.carousel-card {
+  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: transform;
+}
+
+.carousel-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.next-card-hidden {
+  opacity: 0;
+  transform: translateX(100%) scale(0.9);
+}
+
+.next-card-visible {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+
 @media (max-width: 768px) {
   .vs-divider::before {
     width: 100%;
     height: 2px;
   }
+}
+
+/* Animation for character selection */
+.character-selected {
+  animation: pulse 0.3s ease-in-out;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Loading animation for character images */
+.character-image-loading {
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
 }
