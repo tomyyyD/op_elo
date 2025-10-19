@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import logoUrl from '../assets/joly-roger.png'
 import type { Character } from '../types'
+import { getApiUrl } from '../utility/api'
 import CharacterCard from './CharacterCard'
 import './Picker.css'
 
@@ -48,7 +49,7 @@ function Picker() {
     const fetchCharacters = async () => {
       try {
         setLoading(true)
-        const response = await fetch('/api/characters')
+        const response = await fetch(getApiUrl('/characters'))
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
@@ -171,7 +172,7 @@ function Picker() {
 
     // Update winner's Elo and stats
     try {
-      await fetch(`/api/characters/${selectedChar.id}/elo`, {
+      await fetch(getApiUrl(`/characters/${selectedChar.id}/elo`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -185,7 +186,7 @@ function Picker() {
       });
 
       // Update loser's Elo and stats  
-      await fetch(`/api/characters/${otherChar.id}/elo`, {
+      await fetch(getApiUrl(`/characters/${otherChar.id}/elo`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

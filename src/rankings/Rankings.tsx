@@ -3,6 +3,7 @@ import { MdChevronLeft, MdChevronRight, MdFirstPage, MdLastPage } from 'react-ic
 import { Link } from 'react-router-dom'
 import logoUrl from '../assets/joly-roger.png'
 import type { Character } from '../types'
+import { getApiUrl } from '../utility/api'
 import { getProxiedImageUrl } from '../utility/utility'
 import './Rankings.css'
 
@@ -17,7 +18,7 @@ function Rankings() {
     const fetchCharacters = async () => {
       try {
         setLoading(true)
-        const response = await fetch('/api/characters')
+        const response = await fetch(getApiUrl('/characters'))
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
