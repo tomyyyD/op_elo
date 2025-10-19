@@ -1,13 +1,10 @@
 import { useEffect, useState } from 'react'
+import { MdChevronLeft, MdChevronRight, MdFirstPage, MdLastPage } from 'react-icons/md'
 import { Link } from 'react-router-dom'
 import logoUrl from '../assets/joly-roger.png'
+import type { Character } from '../types'
+import { getProxiedImageUrl } from '../utility/utility'
 import './Rankings.css'
-
-interface Character {
-  first_name: string
-  elo: number
-  recent_change: number
-}
 
 function Rankings() {
   const [characters, setCharacters] = useState<Character[]>([])
@@ -111,14 +108,27 @@ function Rankings() {
                     <div key={index} className="px-6 py-4 hover:bg-gray-50 transition-colors">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
+                          <span className="text-xs font-bold text-white bg-black bg-opacity-60 rounded-full w-7 h-7 flex items-center justify-center">
+                            #{startIndex + index + 1}
+                          </span>
+
                           <div className="flex-shrink-0">
-                            <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                              <span className="text-sm font-bold text-gray-600">#{startIndex + index + 1}</span>
+                            <div 
+                              className="w-14 h-14 bg-gray-200 rounded-full flex items-center justify-center relative overflow-hidden"
+                              style={{
+                                backgroundImage: character.image_path 
+                                  ? `url(${getProxiedImageUrl(character.image_path)})` 
+                                  : undefined,
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'top center',
+                                backgroundRepeat: 'no-repeat'
+                              }}
+                            >
                             </div>
                           </div>
-                          <div>
+                          <div className='flex flex-col items-start'>
                             <h4 className="text-lg font-semibold text-gray-800">{character.first_name}</h4>
-                            <p className="text-sm text-gray-500">One Piece Character</p>
+                            <p className="text-sm text-gray-500">Record: {character.wins}-{character.losses}</p>
                           </div>
                         </div>
                         
@@ -151,11 +161,18 @@ function Rankings() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <button
+                    onClick={() => handlePageChange(1)}
+                    disabled={currentPage === 1}
+                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                  >
+                    <MdFirstPage className="w-4 h-4" />
+                  </button>
+                  <button
                     onClick={() => handlePageChange(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                   >
-                    Previous
+                    <MdChevronLeft className="w-4 h-4" />
                   </button>
                   
                   {/* Page Numbers */}
@@ -191,9 +208,16 @@ function Rankings() {
                   <button
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                   >
-                    Next
+                    <MdChevronRight className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handlePageChange(totalPages)}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                  >
+                    <MdLastPage className="w-4 h-4" />
                   </button>
                 </div>
                 

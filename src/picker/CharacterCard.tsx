@@ -1,11 +1,6 @@
 import React from 'react'
-
-interface Character {
-  id: string
-  first_name: string
-  elo: number
-  image_path: string | null
-}
+import type { Character } from '../types'
+import { getProxiedImageUrl } from '../utility/utility'
 
 interface CharacterCardProps {
   character: Character
@@ -16,19 +11,19 @@ interface CharacterCardProps {
   style?: React.CSSProperties
 }
 
-// Utility function to get proxied image URL
-const getProxiedImageUrl = (originalUrl: string | null): string => {
-  if (!originalUrl) return '';
+// // Utility function to get proxied image URL
+// const getProxiedImageUrl = (originalUrl: string | null): string => {
+//   if (!originalUrl) return '';
   
-  // If it's already a local URL, return as-is
-  if (originalUrl.startsWith('/') || originalUrl.startsWith(window.location.origin)) {
-    return originalUrl;
-  }
+//   // If it's already a local URL, return as-is
+//   if (originalUrl.startsWith('/') || originalUrl.startsWith(window.location.origin)) {
+//     return originalUrl;
+//   }
   
-  // Use query parameter to match backend implementation
-  const encodedUrl = encodeURIComponent(originalUrl);
-  return `/api/image-proxy?url=${encodedUrl}`;
-};
+//   // Use query parameter to match backend implementation
+//   const encodedUrl = encodeURIComponent(originalUrl);
+//   return `/api/image-proxy?url=${encodedUrl}`;
+// };
 
 const CharacterCard: React.FC<CharacterCardProps> = ({
   character,
@@ -70,7 +65,7 @@ const CharacterCard: React.FC<CharacterCardProps> = ({
         disabled={disabled}
         className="w-full text-center block"
       >
-        <div className={`rounded-lg p-6 md:p-8 mb-4 shadow-md border-2 border-transparent transition-all duration-200 ${getCardColorClasses()}`}>
+        <div className={`rounded-lg p-6 md:p-8 my-3 shadow-md border-2 border-transparent transition-all duration-200 ${getCardColorClasses()}`}>
           <div className="w-32 h-32 md:w-48 md:h-48 mx-auto mb-6 flex items-center justify-center overflow-hidden rounded-lg">
             {character.image_path ? (
               <img 
@@ -88,8 +83,9 @@ const CharacterCard: React.FC<CharacterCardProps> = ({
               <span className="text-gray-500 text-sm md:text-base">No Image</span>
             </div>
           </div>
-          <h4 className={`text-xl md:text-2xl font-semibold mb-2 ${getTextColorClasses()}`}>{character.first_name}</h4>
+          <h4 className={`text-xl md:text-2xl font-semibold mb-2 ${getTextColorClasses()}`} style={{ height: '3rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{character.first_name}</h4>
           <p className="text-gray-600 text-base md:text-lg mb-4">Elo: {character.elo}</p>
+          <p className="text-gray-600 text-base md:text-lg mb-4">Record: {character.wins}-{character.losses}</p>
         </div>
       </button>
     </div>
