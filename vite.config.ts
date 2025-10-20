@@ -8,6 +8,13 @@ export default defineConfig(({ mode }) => {
   
   return {
     plugins: [react(), tailwindcss()],
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: undefined
+        }
+      }
+    },
     server: {
       proxy: {
         '/api': {
