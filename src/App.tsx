@@ -14,31 +14,31 @@ function App() {
         </p>
       </div>
       <div className='flex justify-center w-full'>
-        <div className="flex flex-row justify-around w-7/10 gap-3 p-3">
+        <div className="flex flex-col md:flex-row justify-around w-7/8 md:w-7/10 gap-3 p-3">
           <Link to="/picker">
-            <div className="relative group cursor-pointer overflow-hidden rounded-lg inline-block">
-              <img src={kaidoUrl} className="logo kaido block object-cover grayscale group-hover:grayscale-0 transition-all duration-300 group-hover:scale-105" alt="rank tab" />
-              <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-transparent transition-all duration-300">
-                <h1 className="text-white font-bold text-xl text-center px-4">Contribute To Rankings</h1>
+            <div className="relative group cursor-pointer overflow-hidden rounded-lg inline-block h-48 md:h-auto">
+              <img src={kaidoUrl} className="logo kaido block object-cover md:grayscale group-hover:grayscale-0 transition-all duration-300 group-hover:scale-105" alt="rank tab" />
+              <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-transparent transition-all duration-300">
+                <h1 className="text-white font-bold text-center px-2 md:px-4 text-sm md:text-xl">Contribute To Rankings</h1>
               </div>
             </div>
           </Link>
           <Link to="/rankings">
-            <div className="relative group cursor-pointer overflow-hidden rounded-lg inline-block">
-              <img src={shanksUrl} className="logo shanks block object-cover grayscale group-hover:grayscale-0 transition-all duration-300 group-hover:scale-105" alt="rank tab" />
+            <div className="relative group cursor-pointer overflow-hidden rounded-lg inline-block h-48 md:h-auto">
+              <img src={shanksUrl} className="logo shanks block object-cover md:grayscale group-hover:grayscale-0 transition-all duration-300 group-hover:scale-105" alt="rank tab" />
               <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-transparent transition-all duration-300">
-                <h1 className="text-white font-bold text-xl text-center px-4">Current Elo Rankings</h1>
+                <h1 className="text-white font-bold text-center px-2 md:px-4 text-sm md:text-xl">Current Elo Rankings</h1>
               </div>
             </div>
           </Link>
         </div>
       </div>
-      <div className='flex flex-row justify-center items-center'>
-        <img src={logoUrl} className='h-32' alt="Strawhat joly roger" />
+      <div className='flex flex-col md:flex-row justify-center items-center'>
+        <img src={logoUrl} className='h-16 md:h-32' alt="Strawhat joly roger" />
         <h1 className='font-bold'>One Piece Elo</h1>
       </div>
       <div className="flex flex-row items-center justify-center">
-        <div className="card w-3/5">
+        <div className="card w-7/8 md:w-3/5">
           <p>
             This site is designed to create a consensus from the community on who the most
             powerful characters are by public opinion. You can contribute to the ranking by
