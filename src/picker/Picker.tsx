@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import logoUrl from '../assets/joly-roger.png'
 import type { Character } from '../types'
@@ -39,13 +39,134 @@ function Picker() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [currentCharacters, setCurrentCharacters] = useState<Character[]>([])
-  const [nextCharacter, setNextCharacter] = useState<Character | null>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
   const [matchupsCompleted, setMatchupsCompleted] = useState(0)
   const [correctPredictions, setCorrectPredictions] = useState(0)
+  const isInitializedRef = useRef(false)
+  
+  // Cache for optimized character lookups
+  const charactersMapRef = useRef<Map<string, Character>>(new Map())
 
+  // Update the characters map when characters array changes
+  useEffect(() => {
+    const newMap = new Map<string, Character>()
+    characters.forEach(char => newMap.set(char.id, char))
+    charactersMapRef.current = newMap
+  }, [characters])
+
+  // Optimized shuffle that doesn't copy entire array - just picks random indices
+  const getRandomCharacter = (excludeIds: Set<string> = new Set()): Character | null => {
+    const availableChars = characters.filter(char => !excludeIds.has(char.id))
+    if (availableChars.length === 0) return null
+    return availableChars[Math.floor(Math.random() * availableChars.length)]
+  }
+
+  // Optimized character filtering with early exit
+  const findSimilarEloCharacter = (targetElo: number, excludeIds: Set<string>): Character | null => {
+    const eloRange = 100
+    const minElo = targetElo - eloRange
+    const maxElo = targetElo + eloRange
+    
+    // First pass: look for characters in ELO range
+    const candidates: Character[] = []
+    for (const char of characters) {
+      if (excludeIds.has(char.id)) continue
+      if (char.elo >= minElo && char.elo <= maxElo) {
+        candidates.push(char)
+      }
+    }
+    
+    if (candidates.length > 0) {
+      return candidates[Math.floor(Math.random() * candidates.length)]
+    }
+    
+    // Fallback: any character not in excludeIds
+    return getRandomCharacter(excludeIds)
+  }
+
+  const loadNewMatchup = (charactersArray: Character[]) => {
+    if (charactersArray.length < 2) return
+
+    // Get a completely random character C
+    const characterC = getRandomCharacter()
+    if (!characterC) return
+
+    // Find a character with similar ELO to C
+    const excludeIds = new Set([characterC.id])
+    const characterD = findSimilarEloCharacter(characterC.elo, excludeIds)
+    if (!characterD) return
+
+    setCurrentCharacters([characterC, characterD])
+  }
+
+  // Optimized character update using Map for O(1) lookups
+  const updateCharactersOptimized = (selectedChar: Character, otherChar: Character, winnerElo: number, loserElo: number, winnerChange: number, loserChange: number) => {
+    setCharacters(prevCharacters => {
+      // Only update the two characters that changed
+      return prevCharacters.map(char => {
+        if (char.id === selectedChar.id) {
+          return {
+            ...char,
+            wins: char.wins + 1,
+            elo: Math.round(winnerElo),
+            recent_change: Math.round(winnerChange)
+          }
+        } else if (char.id === otherChar.id) {
+          return {
+            ...char,
+            losses: char.losses + 1,
+            elo: Math.round(loserElo),
+            recent_change: Math.round(loserChange)
+          }
+        }
+        return char
+      })
+    })
+  }
 
   useEffect(() => {
+    const initializeMatchup = (data: Character[]) => {
+      if (data.length < 2) return
+      
+      if (isInitializedRef.current) {
+        console.log('Preventing double initialization due to React StrictMode')
+        return
+      }
+
+      console.log('Initializing matchup with characters:', data.length)
+      
+      // Get a completely random character C
+      const characterC = data[Math.floor(Math.random() * data.length)]
+
+      // Find a character with similar ELO to C
+      const excludeIds = new Set([characterC.id])
+      const eloRange = 100
+      const minElo = characterC.elo - eloRange
+      const maxElo = characterC.elo + eloRange
+      
+      // Find characters within ELO range, excluding C
+      const candidateCharacters = data.filter(char => 
+        !excludeIds.has(char.id) && 
+        char.elo >= minElo && 
+        char.elo <= maxElo
+      )
+      
+      let characterD
+      if (candidateCharacters.length === 0) {
+        // Fallback: if no characters in range, get any available character except C
+        const fallbackCandidates = data.filter(char => !excludeIds.has(char.id))
+        characterD = fallbackCandidates[Math.floor(Math.random() * fallbackCandidates.length)]
+      } else {
+        // Randomly select from candidates within ELO range
+        characterD = candidateCharacters[Math.floor(Math.random() * candidateCharacters.length)]
+      }
+
+      console.log('Selected characters:', characterC.first_name, 'vs', characterD.first_name)
+      setCurrentCharacters([characterC, characterD])
+      isInitializedRef.current = true
+    }
+
     const fetchCharacters = async () => {
       try {
         setLoading(true)
@@ -59,42 +180,9 @@ function Picker() {
         setCharacters(data)
         setError(null)
         
-        // Initialize with fair matchups
-        if (data.length >= 3) {
-          const shuffled = shuffleArray(data)
-          
-          // Start with first character
-          const firstChar = shuffled[0]
-          
-          // Helper function to find fair matchup (inline to avoid dependency issues)
-          const findFairMatchup = (targetElo: number, excludeIds: string[]): Character => {
-            const eloRange = 100
-            const minElo = targetElo - eloRange
-            const maxElo = targetElo + eloRange
-            
-            const candidates = data.filter((char: Character) => 
-              char.elo >= minElo && 
-              char.elo <= maxElo && 
-              !excludeIds.includes(char.id)
-            )
-            
-            if (candidates.length === 0) {
-              // Fallback to any available character
-              const fallbacks = data.filter((char: Character) => !excludeIds.includes(char.id))
-              return fallbacks[Math.floor(Math.random() * fallbacks.length)]
-            }
-            
-            return candidates[Math.floor(Math.random() * candidates.length)]
-          }
-          
-          // Find a fair matchup for the second character
-          const secondChar = findFairMatchup(firstChar.elo, [firstChar.id])
-          
-          // Find a fair matchup for the next character based on the second character
-          const thirdChar = findFairMatchup(secondChar.elo, [firstChar.id, secondChar.id])
-          
-          setCurrentCharacters([firstChar, secondChar])
-          setNextCharacter(thirdChar)
+        // Initialize with first random matchup
+        if (data.length >= 2) {
+          initializeMatchup(data)
         }
       } catch (err) {
         console.error('Error fetching characters:', err)
@@ -107,171 +195,127 @@ function Picker() {
     fetchCharacters()
   }, [])
 
-  // Fisher-Yates shuffle algorithm for better randomness
-  const shuffleArray = (array: Character[]): Character[] => {
-    const shuffled = [...array]
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
-    }
-    return shuffled
-  }
-
-  const getFairMatchupCharacter = (targetElo: number, excludeIds: string[] = []): Character | null => {
-    const eloRange = 100
-    const minElo = targetElo - eloRange
-    const maxElo = targetElo + eloRange
-    
-    // Find characters within ELO range, excluding specified IDs
-    const candidateCharacters = characters.filter(char => 
-      char.elo >= minElo && 
-      char.elo <= maxElo && 
-      !excludeIds.includes(char.id)
-    )
-    
-    if (candidateCharacters.length === 0) {
-      // Fallback: if no characters in range, expand the range or get any available character
-      const fallbackCandidates = characters.filter(char => !excludeIds.includes(char.id))
-      if (fallbackCandidates.length === 0) return null
-      
-      const randomIndex = Math.floor(Math.random() * fallbackCandidates.length)
-      return fallbackCandidates[randomIndex]
-    }
-    
-    // Randomly select from candidates within ELO range
-    const randomIndex = Math.floor(Math.random() * candidateCharacters.length)
-    return candidateCharacters[randomIndex]
-  }
-
-
-
   const handleCharacterSelection = async (selectedIndex: number) => {
-    if (isAnimating || !nextCharacter) return
+    if (isProcessing || isAnimating) return
   
-    setIsAnimating(true)
+    const startTime = performance.now()
+    console.log('Starting character selection...')
+    
+    setIsProcessing(true)
+    setIsAnimating(true) // Start fade out immediately
     setMatchupsCompleted(prev => prev + 1)
 
-    // Simple logic: if user picks the character with higher Elo, it's "correct"
     const selectedChar = currentCharacters[selectedIndex]
     const otherChar = currentCharacters[selectedIndex === 0 ? 1 : 0]
 
-    // Store the characters that will be used after animation
-    const upcomingRightChar = nextCharacter // Current nextCharacter becomes new right
-    // Get a fair matchup character for the next queue based on the upcoming right character's ELO
-    const excludeIds = [
-      currentCharacters[0].id, 
-      currentCharacters[1].id, 
-      upcomingRightChar.id
-    ]
-    const upcomingNextChar = getFairMatchupCharacter(upcomingRightChar.elo, excludeIds)
-
-    // update elos
+    // Calculate new ELOs
     const [winnerElo, loserElo] = calculateElo(selectedChar, otherChar);
     const winnerChange = calculateChange(selectedChar, winnerElo);
     const loserChange = calculateChange(otherChar, loserElo);
 
-    // Update winner's Elo and stats
-    try {
-      await fetch(getApiUrl(`/characters/${selectedChar.id}/elo`), {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          wins_change: 1,
-          losses_change: 0,
-          elo_change: Math.round(winnerElo - selectedChar.elo),
-          recent_change: Math.round(selectedChar.recent_change)
-        })
-      });
-
-      // Update loser's Elo and stats  
-      await fetch(getApiUrl(`/characters/${otherChar.id}/elo`), {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          wins_change: 0,
-          losses_change: 1,
-          elo_change: Math.round(loserElo - otherChar.elo),
-          recent_change: Math.round(otherChar.recent_change)
-        })
-      });
-
-      // Create updated character objects with new stats
-      const updatedSelectedChar = {
-        ...selectedChar,
-        wins: selectedChar.wins + 1,
-        elo: Math.round(winnerElo),
-        recent_change: Math.round(winnerChange)
-      };
-
-      const updatedOtherChar = {
-        ...otherChar,
-        losses: otherChar.losses + 1,
-        elo: Math.round(loserElo),
-        recent_change: Math.round(loserChange)
-      };
-
-      // Create the updated currentCharacters array
-      const updatedCurrentCharacters = [...currentCharacters];
-      updatedCurrentCharacters[selectedIndex] = updatedSelectedChar;
-      updatedCurrentCharacters[selectedIndex === 0 ? 1 : 0] = updatedOtherChar;
-      
-      // Update state immediately to show new values during animation
-      setCurrentCharacters(updatedCurrentCharacters);
-
-      // Start the carousel animation - use the updated character data
-      setTimeout(() => {
-        // Always move the right character (index 1) to the left position
-        // Use the pre-calculated characters for the new state
-        setCurrentCharacters([updatedCurrentCharacters[1], upcomingRightChar])
-        setNextCharacter(upcomingNextChar)
-        
-        setIsAnimating(false)
-      }, 500) // Match this with CSS animation duration
-
-    } catch (err) {
-      console.error('Error updating character Elos:', err);
-      
-      // Even if API fails, continue with animation using original data
-      setTimeout(() => {
-        setCurrentCharacters([currentCharacters[1], upcomingRightChar])
-        setNextCharacter(upcomingNextChar)
-        
-        setIsAnimating(false)
-      }, 500)
-    }
-    
+    // Check if prediction was correct (user picked higher ELO character)
     if (selectedChar.elo >= otherChar.elo) {
       setCorrectPredictions(prev => prev + 1)
     }
+
+    // Start processing immediately (parallel with fade out)
+    const apiStartTime = performance.now()
+    const processingPromise = (async () => {
+      try {
+        // Run API calls in parallel for better performance
+        await Promise.all([
+          fetch(getApiUrl(`/characters/${selectedChar.id}/elo`), {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              wins_change: 1,
+              losses_change: 0,
+              elo_change: Math.round(winnerElo - selectedChar.elo),
+              recent_change: Math.round(selectedChar.recent_change)
+            })
+          }),
+          fetch(getApiUrl(`/characters/${otherChar.id}/elo`), {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              wins_change: 0,
+              losses_change: 1,
+              elo_change: Math.round(loserElo - otherChar.elo),
+              recent_change: Math.round(otherChar.recent_change)
+            })
+          })
+        ]);
+
+        const apiEndTime = performance.now()
+        console.log(`API calls completed in ${(apiEndTime - apiStartTime).toFixed(2)}ms`)
+
+        const updateStartTime = performance.now()
+        // Use optimized character update
+        updateCharactersOptimized(selectedChar, otherChar, winnerElo, loserElo, winnerChange, loserChange)
+        
+        // Load completely new matchup
+        loadNewMatchup(characters)
+        
+        const totalTime = performance.now() - startTime
+        console.log(`Character update completed in ${(performance.now() - updateStartTime).toFixed(2)}ms`)
+        console.log(`Total processing time: ${totalTime.toFixed(2)}ms`)
+
+      } catch (err) {
+        console.error('Error updating character Elos:', err);
+        // Even if API fails, load new matchup
+        loadNewMatchup(characters)
+      }
+    })()
+
+    // Wait for either fade out animation (300ms) OR processing to complete, whichever is longer
+    const fadeOutDelay = new Promise(resolve => setTimeout(resolve, 300))
+    
+    await Promise.all([fadeOutDelay, processingPromise])
+    
+    // Now start fade in animation
+    setIsAnimating(false)
+    setIsProcessing(false)
+    
+    const totalTime = performance.now() - startTime
+    console.log(`Total operation time (including animations): ${totalTime.toFixed(2)}ms`)
   }
   return (
     <div className="min-h-screen w-full">
       {/* Header */}
-      <div className='flex flex-row justify-center items-center py-4'>
-        <Link to="/" className='flex flex-row items-center gap-3 hover:opacity-80 transition-opacity'>
-          <img src={logoUrl} className='h-12' alt="Strawhat joly roger" />
-          <h1 className='font-bold text-xl'>One Piece Elo</h1>
+      <div className='flex flex-row justify-center items-center py-4 px-4'>
+        <Link to="/" className='flex flex-row items-center gap-2 md:gap-3 hover:opacity-80 transition-opacity'>
+          <img src={logoUrl} className='h-10 md:h-12' alt="Strawhat joly roger" />
+          <h1 className='font-bold text-lg md:text-xl'>One Piece Elo</h1>
         </Link>
       </div>
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-6">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-white mb-4">Character Matchup Picker</h2>
-          <p className="text-gray-400 max-w-2xl mx-auto">
+        <div className="text-center mb-6 md:mb-8 px-4">
+          <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 md:mb-4">Character Matchup Picker</h2>
+          <p className="text-gray-400 max-w-2xl mx-auto text-sm md:text-base">
             Help contribute to the community rankings by choosing the winner in randomly selected matchups 
             between One Piece's strongest characters.
           </p>
         </div>
 
         {/* Matchup Card */}
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-lg shadow-lg p-6 md:p-8">
-            <h3 className="text-black text-xl font-semibold text-center my-3">Who would win?</h3>
+        <div className="max-w-4xl mx-auto px-2 md:px-0">
+          <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 lg:p-8">
+            <h3 className="text-black text-xl font-semibold text-center my-3">
+              {isProcessing ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                  <span>Processing your choice...</span>
+                </div>
+              ) : (
+                'Who would win?'
+              )}
+            </h3>
             
             {loading ? (
               <div className="text-center py-8">
@@ -290,71 +334,99 @@ function Picker() {
                 </button>
               </div>
             ) : (
-              <div className="relative overflow-hidden" style={{ minHeight: '500px' }}>
-                {/* Character Container with Carousel Animation */}
-                <div className="relative w-full h-full flex justify-center items-center" style={{ minHeight: '500px' }}>
+              <div className="relative" style={{ minHeight: '500px' }}>
+                {/* Desktop Layout - Horizontal */}
+                <div className="hidden md:block relative w-full h-full flex justify-center items-center" style={{ minHeight: '500px' }}>
                   
                   {/* Left Character Card */}
                   {currentCharacters[0] && (
-                    <CharacterCard
-                      key={`left-${currentCharacters[0].id}`}
-                      character={currentCharacters[0]}
-                      onSelect={() => handleCharacterSelection(0)}
-                      disabled={isAnimating}
-                      buttonColor="blue"
-                      className={`${
-                        isAnimating ? '-translate-x-full opacity-0 scale-95' : 'translate-x-0 opacity-100 scale-100'
-                      }`}
-                      style={{ 
-                        left: '8%',
-                        width: '40%',
-                        zIndex: isAnimating ? 1 : 2
-                      }}
-                    />
+                    <div className={`absolute transition-all duration-200 ease-in-out ${
+                      isAnimating ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+                    }`} style={{ left: '8%', width: '40%' }}>
+                      <CharacterCard
+                        key={`left-${currentCharacters[0].id}`}
+                        character={currentCharacters[0]}
+                        onSelect={() => handleCharacterSelection(0)}
+                        disabled={isProcessing}
+                        buttonColor="blue"
+                        className=""
+                        style={{ width: '100%' }}
+                      />
+                    </div>
                   )}
 
-                  {/* Right Character Card (slides to left position during animation) */}
+                  {/* Right Character Card */}
                   {currentCharacters[1] && (
-                    <CharacterCard
-                      key={`right-${currentCharacters[1].id}`}
-                      character={currentCharacters[1]}
-                      onSelect={() => handleCharacterSelection(1)}
-                      disabled={isAnimating}
-                      buttonColor="red"
-                      className="translate-x-0"
-                      style={{ 
-                        left: isAnimating ? '8%' : '52%',
-                        width: '40%',
-                        zIndex: 2
-                      }}
-                    />
+                    <div className={`absolute transition-all duration-200 ease-in-out ${
+                      isAnimating ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+                    }`} style={{ left: '52%', width: '40%' }}>
+                      <CharacterCard
+                        key={`right-${currentCharacters[1].id}`}
+                        character={currentCharacters[1]}
+                        onSelect={() => handleCharacterSelection(1)}
+                        disabled={isProcessing}
+                        buttonColor="red"
+                        className=""
+                        style={{ width: '100%' }}
+                      />
+                    </div>
                   )}
 
-                  {/* Next Character Card (slides in from right during animation) */}
-                  {nextCharacter && (
-                    <CharacterCard
-                      key={`next-${nextCharacter.id}`}
-                      character={nextCharacter}
-                      onSelect={() => {}} // No action for next character
-                      disabled={true}
-                      buttonColor="gray"
-                      className={`${
-                        isAnimating ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-                      }`}
-                      style={{ 
-                        left: isAnimating ? '52%' : '120%',
-                        width: '40%',
-                        zIndex: 1
-                      }}
-                    />
-                  )}
+                  {/* VS Divider - Desktop horizontal layout */}
+                  <div className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 transition-opacity duration-200 ${
+                    isAnimating ? 'opacity-30' : 'opacity-100'
+                  }`}>
+                    <div className="bg-white px-4 py-2 rounded-full border-2 border-gray-300 font-bold text-gray-600 shadow-lg text-base">
+                      VS
+                    </div>
+                  </div>
                 </div>
 
-                {/* VS Divider - positioned between the two visible cards */}
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
-                  <div className="bg-white px-3 md:px-4 py-1 md:py-2 rounded-full border-2 border-gray-300 font-bold text-gray-600 shadow-lg text-sm md:text-base">
-                    VS
+                {/* Mobile Layout - Vertical Stack */}
+                <div className="md:hidden relative w-full flex flex-col items-center justify-center py-4" style={{ minHeight: '500px' }}>
+                  
+                  {/* First Character Card */}
+                  {currentCharacters[0] && (
+                    <div className={`w-full max-w-xs transition-all duration-200 ease-in-out ${
+                      isAnimating ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+                    }`}>
+                      <CharacterCard
+                        key={`mobile-left-${currentCharacters[0].id}`}
+                        character={currentCharacters[0]}
+                        onSelect={() => handleCharacterSelection(0)}
+                        disabled={isProcessing}
+                        buttonColor="blue"
+                        className=""
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                  )}
+
+                  {/* VS Divider - Mobile vertical layout */}
+                  <div className={`z-10 transition-opacity duration-200 ${
+                    isAnimating ? 'opacity-30' : 'opacity-100'
+                  }`}>
+                    <div className="bg-white px-3 py-1 rounded-full border-2 border-gray-300 font-bold text-gray-600 shadow-lg text-sm">
+                      VS
+                    </div>
                   </div>
+
+                  {/* Second Character Card */}
+                  {currentCharacters[1] && (
+                    <div className={`w-full max-w-xs transition-all duration-200 ease-in-out ${
+                      isAnimating ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+                    }`}>
+                      <CharacterCard
+                        key={`mobile-right-${currentCharacters[1].id}`}
+                        character={currentCharacters[1]}
+                        onSelect={() => handleCharacterSelection(1)}
+                        disabled={isProcessing}
+                        buttonColor="red"
+                        className=""
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             )}

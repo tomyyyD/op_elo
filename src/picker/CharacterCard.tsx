@@ -57,7 +57,7 @@ const CharacterCard: React.FC<CharacterCardProps> = ({
 
   return (
     <div 
-      className={`absolute transition-all duration-500 ease-in-out ${className}`}
+      className={`transition-all duration-500 ease-in-out ${className}`}
       style={style}
     >
       <button

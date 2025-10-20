@@ -39,3 +39,23 @@
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
 }
+
+/* Mobile-specific improvements */
+@media (max-width: 640px) {
+  .container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  
+  /* Ensure pagination doesn't overflow */
+  .pagination-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Smaller character cards on mobile */
+  .character-row {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}

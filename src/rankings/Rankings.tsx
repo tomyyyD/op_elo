@@ -106,9 +106,9 @@ function Rankings() {
                 {currentCharacters
                   .sort((a, b) => b.elo - a.elo) // Sort by elo descending
                   .map((character, index) => (
-                    <div key={index} className="px-6 py-4 hover:bg-gray-50 transition-colors">
+                    <div key={index} className="px-3 sm:px-6 py-4 hover:bg-gray-50 transition-colors">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-2 sm:space-x-4">
                           <span className="text-xs font-bold text-white bg-black bg-opacity-60 rounded-full w-7 h-7 flex items-center justify-center">
                             #{startIndex + index + 1}
                           </span>
@@ -127,18 +127,18 @@ function Rankings() {
                             >
                             </div>
                           </div>
-                          <div className='flex flex-col items-start'>
-                            <h4 className="text-lg font-semibold text-gray-800">{character.first_name}</h4>
-                            <p className="text-sm text-gray-500">Record: {character.wins}-{character.losses}</p>
+                          <div className='flex flex-col items-start text-left'>
+                            <h4 className="text-lg font-semibold text-gray-800 text-left">{character.first_name}</h4>
+                            <p className="text-sm text-gray-500 text-left">Record: {character.wins}-{character.losses}</p>
                           </div>
                         </div>
                         
-                        <div className="flex items-center space-x-6">
+                        <div className="flex items-center space-x-3 md:space-x-6">
                           <div className="text-right">
                             <div className="text-lg font-bold text-gray-800">{character.elo}</div>
                             <div className="text-sm text-gray-500">Elo Rating</div>
                           </div>
-                          <div className="text-right">
+                          <div className="text-right hidden md:block">
                             <div className={`text-sm font-semibold ${
                               character.recent_change >= 0 ? 'text-green-600' : 'text-red-600'
                             }`}>
@@ -159,42 +159,42 @@ function Rankings() {
         {!loading && !error && totalPages > 1 && (
           <div className="max-w-4xl mx-auto mt-6">
             <div className="bg-white rounded-lg shadow-lg p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center flex-wrap justify-center gap-1">
                   <button
                     onClick={() => handlePageChange(1)}
                     disabled={currentPage === 1}
-                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                    className="px-2 sm:px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                   >
                     <MdFirstPage className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handlePageChange(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                    className="px-2 sm:px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                   >
                     <MdChevronLeft className="w-4 h-4" />
                   </button>
                   
                   {/* Page Numbers */}
-                  <div className="flex space-x-1">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  <div className="flex flex-wrap gap-1 justify-center">
+                    {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
                       let pageNum;
-                      if (totalPages <= 5) {
+                      if (totalPages <= 3) {
                         pageNum = i + 1;
-                      } else if (currentPage <= 3) {
+                      } else if (currentPage <= 2) {
                         pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
+                      } else if (currentPage >= totalPages - 1) {
+                        pageNum = totalPages - 2 + i;
                       } else {
-                        pageNum = currentPage - 2 + i;
+                        pageNum = currentPage - 1 + i;
                       }
                       
                       return (
                         <button
                           key={pageNum}
                           onClick={() => handlePageChange(pageNum)}
-                          className={`px-3 py-2 text-sm font-medium border ${
+                          className={`px-2 sm:px-3 py-2 text-sm font-medium border ${
                             currentPage === pageNum
                               ? 'bg-blue-500 text-white border-blue-500'
                               : 'text-gray-500 bg-white border-gray-300 hover:bg-gray-50'
@@ -209,14 +209,14 @@ function Rankings() {
                   <button
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                    className="px-2 sm:px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                   >
                     <MdChevronRight className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handlePageChange(totalPages)}
                     disabled={currentPage === totalPages}
-                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                    className="px-2 sm:px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                   >
                     <MdLastPage className="w-4 h-4" />
                   </button>
