@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom'
 import './App.css'
 import logoUrl from './assets/joly-roger.png'
-import kaidoUrl from './assets/kaido.png'
-import shanksUrl from './assets/shanks.png'
+import kaidoUrl from './assets/kaido(1024).png'
+import shanksUrl from './assets/shanks(1024).png'
 
 function App() {
 
